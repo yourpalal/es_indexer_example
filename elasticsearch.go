@@ -1,17 +1,15 @@
 package main
 
 import (
-     "encoding/json"
-     "fmt"
+	"encoding/json"
+	"fmt"
 )
-
 
 // ElasticSearchIndexer implements Indexer by indexing documents in an
 // Elasticsearch instance.
 type ElasticSearchIndexer struct {
-    host, port string
+	host, port string
 }
-
 
 // verify that ElasticSearchIndexer implements Indexer by writing documents to
 // an Elasticsearch (http://elasticsearch.org) server.
@@ -23,15 +21,15 @@ var _ Indexer = ElasticSearchIndexer{}
 func (indexer ElasticSearchIndexer) Index(index string, _type string, id string, create bool, data interface{}) (IndexResponse, error) {
 	_, err := json.Marshal(data)
 	if err != nil {
-        return IndexResponse{id, index, _type, false}, err;
+		return IndexResponse{id, index, _type, false}, err
 	}
 
-    // TODO when creating, do op_type=create, set timestamp?
-    return IndexResponse{id, index, _type, create}, nil;
+	// TODO when creating, do op_type=create, set timestamp?
+	return IndexResponse{id, index, _type, create}, nil
 }
 
 // docURL returns the elastic search url for a given document
 // i.e you could CURL this to get the document
 func (indexer *ElasticSearchIndexer) docURL(index string, _type string, id string) string {
-    return fmt.Sprintf("http://%s:%s/%s/%s/%s", indexer.host, indexer.port, index, _type, id);
+	return fmt.Sprintf("http://%s:%s/%s/%s/%s", indexer.host, indexer.port, index, _type, id)
 }
