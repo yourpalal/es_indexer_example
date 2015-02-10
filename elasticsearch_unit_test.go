@@ -36,7 +36,7 @@ func Test_ESIndexerReturnsJsonErrors(t *testing.T) {
 func Test_ESIndexer_docURL(t *testing.T) {
     setup(t)
 
-    indexer.ip = "127.0.0.1"
+    indexer.host = "127.0.0.1"
     indexer.port = "9200"
     url := indexer.docURL("twitter", "tweet", "best_tweet");
     expected := "http://127.0.0.1:9200/twitter/tweet/best_tweet"

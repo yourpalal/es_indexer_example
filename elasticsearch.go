@@ -9,7 +9,7 @@ import (
 // ElasticSearchIndexer implements Indexer by indexing documents in an
 // Elasticsearch instance.
 type ElasticSearchIndexer struct {
-    ip, port string
+    host, port string
 }
 
 
@@ -30,6 +30,8 @@ func (indexer ElasticSearchIndexer) Index(index string, _type string, id string,
     return IndexResponse{id, index, _type, create}, nil;
 }
 
+// docURL returns the elastic search url for a given document
+// i.e you could CURL this to get the document
 func (indexer *ElasticSearchIndexer) docURL(index string, _type string, id string) string {
-    return fmt.Sprintf("http://%s:%s/%s/%s/%s", indexer.ip, indexer.port, index, _type, id);
+    return fmt.Sprintf("http://%s:%s/%s/%s/%s", indexer.host, indexer.port, index, _type, id);
 }
