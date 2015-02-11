@@ -120,7 +120,7 @@ func Test_CreateUpdateDoc(t *testing.T) {
 	// we should not be able to recreate a doc
 	result, err = indexer.Index(ES_TEST_INDEX, "docs", "1", true, example_doc)
 	AssertTrue(t, "Bad: succeeded in creating a doc twice", err != nil)
-	stored := es_get_doc(t, ES_TEST_INDEX, "docs", "1")
+	stored = es_get_doc(t, ES_TEST_INDEX, "docs", "1")
 	AssertEqual(t, *stored == example_doc, "failed create caused update!",
 		example_doc, *stored)
 

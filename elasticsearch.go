@@ -67,40 +67,59 @@ func MakeElasticSearchIndexerFromEnv(client HTTPPoster) *ElasticSearchIndexer {
 // Similarly, if create=true and the document exists, an error will be returned,
 // and the document will not be updated.
 func (indexer ElasticSearchIndexer) Index(index string, _type string, id string, create bool, data interface{}) (response IndexResponse, err error) {
-	response = IndexResponse{id, index, _type, false}
+	if create {
+		return indexer.addToIndex(index, _type, id, data)
+	}
+	return indexer.updateInIndex(index, _type, id, data)
+}
 
-	if !create {
-		data = &ElasticSearchUpdateRequest{data}
+// updateInIndex handles Index when create = false
+// ensures that our update request has the correct structure
+func (indexer ElasticSearchIndexer) updateInIndex(index string, _type string, id string, data interface{}) (response IndexResponse, err error) {
+	response = IndexResponse{id, index, _type, false}
+	err = nil
+
+	docURL := indexer.docURL(index, _type, id) + "/_update"
+	data = &ElasticSearchUpdateRequest{data}
+	_, err = indexer.postToURL(docURL, data)
+
+	return response, err
+}
+
+// AddToIndex handles Index when create = true
+// makes sure that we get 201 status from Elasticsearch
+func (indexer ElasticSearchIndexer) addToIndex(index string, _type string, id string, data interface{}) (response IndexResponse, err error) {
+	response = IndexResponse{id, index, _type, false}
+	err = nil
+
+	docURL := indexer.docURL(index, _type, id) + "/_create"
+	httpR, err := indexer.postToURL(docURL, data)
+
+	if err == nil && httpR.StatusCode != 201 {
+		err = errors.New("Index() Attempted create but did not get 201 status")
 	}
 
+	response.Created = (err == nil)
+	return response, err
+}
+
+// generic http poster. Jsonifies data and posts it to docURL. If there is
+// a non-200 http status as the result, it is reported as an error.
+func (indexer ElasticSearchIndexer) postToURL(docURL string, data interface{}) (response *http.Response, err error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return response, err
 	}
 
-	docURL := indexer.docURL(index, _type, id)
-	if create {
-		docURL += "/_create"
-	} else {
-		docURL += "/_update"
-	}
-
-	httpR, err := indexer.client.Post(docURL, "application/json", bytes.NewBuffer(jsonData))
+	response, err = indexer.client.Post(docURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return
 	}
 
-	if httpR.StatusCode < 200 || 300 <= httpR.StatusCode {
-		err = fmt.Errorf("Bad http response from elastic search : %v", httpR)
-		return
+	if response.StatusCode < 200 || 300 <= response.StatusCode {
+		err = fmt.Errorf("Bad http response from elastic search : %v", response)
 	}
-
-	if create && httpR.StatusCode != 201 {
-		err = errors.New("Index() Attempted create but did not get 201 status")
-		return
-	}
-
-	return IndexResponse{id, index, _type, create}, nil
+	return
 }
 
 // docURL returns the elastic search url for a given document
