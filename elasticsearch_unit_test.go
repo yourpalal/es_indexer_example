@@ -77,6 +77,7 @@ func Test_ESIndexer_create_http_errors(t *testing.T) {
 
 func Test_ESIndexer_create(t *testing.T) {
 	setup_es_unit_test(t)
+	httpMock.Result.StatusCode = 201
 	response, err := indexer.Index("trumpet", "doc", "first", true, example_doc)
 
 	// check for errors

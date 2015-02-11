@@ -67,6 +67,8 @@ func es_get_doc(t *testing.T, index string, _type string, id string) *Document {
 	return esdoc.Source
 }
 
+// Test_MakeElasticSearchIndexer tests making an ElasticSearchIndexer instance
+// based on environment variables
 func Test_MakeElasticSearchIndexer(t *testing.T) {
 	// capture original values, reset with defer
 	es_host_env := os.Getenv(ES_HOSTNAME_KEY)
@@ -79,23 +81,23 @@ func Test_MakeElasticSearchIndexer(t *testing.T) {
 	os.Unsetenv(ES_PORT_KEY)
 
 	indexer = MakeElasticSearchIndexerFromEnv(&http.Client{})
-	if indexer != nil {
-		t.Fatal("made indexer without getting data from the environment?")
-	}
+	AssertTrue(t, "made indexer without getting data from the environment?", indexer == nil)
 
+	// create test values in the environment
 	os.Setenv(ES_HOSTNAME_KEY, "test_hostname")
 	os.Setenv(ES_PORT_KEY, "1546")
 	indexer = MakeElasticSearchIndexerFromEnv(&http.Client{})
-	if indexer == nil {
-		t.Fatal("MakeElasticSearchIndexerFromEnv failed to read env")
-	}
+	AssertTrue(t, "MakeElasticSearchIndexerFromEnv failed to read env", indexer != nil)
 
 	AssertEqual(t, indexer.host == "test_hostname", "wrong hostname",
 		indexer.host, "test_hostname")
 	AssertEqual(t, indexer.port == "1546", "wrong port", indexer.port, "1546")
 }
 
-func Test_CreateDoc(t *testing.T) {
+// Test_CreateUpdateDoc tests creating, attempting to recreate, and
+// updating a doc with the ElasticSearchIndexer, backed by a real
+// Elasticsearch server.
+func Test_CreateUpdateDoc(t *testing.T) {
 	setup_es_integration_tests(t)
 	clear_es_data(t, ES_TEST_INDEX)
 
@@ -108,4 +110,24 @@ func Test_CreateDoc(t *testing.T) {
 	stored := es_get_doc(t, ES_TEST_INDEX, "docs", "1")
 	AssertEqual(t, *stored == example_doc, "indexed doc is incorrect",
 		example_doc, *stored)
+
+	// we should not be able to recreate a doc
+	result, err = indexer.Index(ES_TEST_INDEX, "docs", "1", true, example_doc)
+	AssertTrue(t, "Bad: succeeded in creating a doc twice", err != nil)
+
+	// but we should be able to update one!
+	modified_doc := Document{
+		Title:     example_doc.Title,
+		Body:      example_doc.Body + " hope you like it!",
+		Timestamp: example_doc.Timestamp,
+	}
+	result, err = indexer.Index(ES_TEST_INDEX, "docs", "1", false, modified_doc)
+	AssertNoError(t, "error updating doc", err)
+	expectedResponse = IndexResponse{"1", ES_TEST_INDEX, "docs", false}
+	AssertEqual(t, result == expectedResponse, "incorrect response on update",
+		expectedResponse, result)
+
+	stored = es_get_doc(t, ES_TEST_INDEX, "docs", "1")
+	AssertEqual(t, *stored == modified_doc, "updated doc is incorrect",
+		modified_doc, *stored)
 }

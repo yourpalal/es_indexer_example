@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -66,16 +65,17 @@ func (indexer ElasticSearchIndexer) Index(index string, _type string, id string,
 		v.Set("op_type", "create")
 		docURL += "?" + v.Encode()
 	}
+
 	httpR, err := indexer.client.Post(docURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return
 	}
+
 	if create && httpR.StatusCode != 201 {
-		errors.New("Index() Attempted create but did not get 201 status")
+		err = errors.New("Index() Attempted create but did not get 201 status")
+		return
 	}
 
-	log.Print(httpR.Status)
-	// TODO when creating, do op_type=create, set timestamp?
 	return IndexResponse{id, index, _type, create}, nil
 }
 
