@@ -12,12 +12,14 @@ import (
 
 // uses the following vars from other tests
 // indexer *ElasticSearchIndexer (from elasticsearch_unit_test.go)
+// example_doc Document (from elasticsearch_unit_test.go)
 
 const (
 	ES_TEST_INDEX = "testing"
 )
 
-// setup to run before each test
+// setup_es_integration_tests setus up a real indexer or skips a test if
+// the environment variables are not set
 func setup_es_integration_tests(t *testing.T) {
 	indexer = MakeElasticSearchIndexerFromEnv(&http.Client{})
 	if indexer == nil {

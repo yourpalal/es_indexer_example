@@ -3,20 +3,13 @@ package main
 import (
 	"encoding/json"
 	"testing"
-	"time"
 )
 
+// Test_DocumentJsonRoundTrip ensures that the Document class can
+// survive a json round-trip.
+// uses example_doc from elasticsearch_unit_test.go
 func Test_DocumentJsonRoundTrip(t *testing.T) {
-	doc := Document{
-		Title: "Trumpet.ca Programming Problem",
-		Body:  "You’ll implement the code for a search indexing system for models such as this...",
-		Timestamp: Timestamp{
-			CreatedAt:  time.Now(),
-			ModifiedAt: time.Now(),
-		},
-	}
-
-	jsonified, err := json.Marshal(doc)
+	jsonified, err := json.Marshal(example_doc)
 	if err != nil {
 		t.Fatalf("Error marshaling json: %s", err.Error())
 	}
@@ -27,7 +20,7 @@ func Test_DocumentJsonRoundTrip(t *testing.T) {
 		t.Fatalf("Error unmarshaling json: %s", err.Error())
 	}
 
-	if doc_copy == nil || doc != *doc_copy {
+	if doc_copy == nil || example_doc != *doc_copy {
 		t.Error("JSON roundtrip produced unlike values")
 	}
 }

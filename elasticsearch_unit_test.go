@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// unjsonable is a map[int]int that cannot be jsonified
 var (
+	// unjsonable is a map[int]int that cannot be jsonified
 	unjsonable map[int]int
 	indexer    *ElasticSearchIndexer
 	httpMock   MockPoster
@@ -25,7 +25,7 @@ var (
 	}
 )
 
-// setup to run before each test
+// setup_es_unit_test prepares some variables for the tests in this file
 func setup_es_unit_test(t *testing.T) {
 
 	unjsonable = make(map[int]int)
@@ -37,6 +37,8 @@ func setup_es_unit_test(t *testing.T) {
 	indexer = &ElasticSearchIndexer{"127.0.0.1", "9200", &httpMock}
 }
 
+// Test_ESIndexerReturnsJsonErrors tests that the ElasticSearchIndexer notices
+// and returns json marshalling errors
 func Test_ESIndexerReturnsJsonErrors(t *testing.T) {
 	setup_es_unit_test(t)
 
@@ -50,6 +52,8 @@ func Test_ESIndexerReturnsJsonErrors(t *testing.T) {
 	}
 }
 
+// Test_ESIndexer_docURL runs a few basic tests on the URL string returned
+// by ElasticSearchIndexer.docURL
 func Test_ESIndexer_docURL(t *testing.T) {
 	setup_es_unit_test(t)
 
@@ -75,6 +79,8 @@ func Test_ESIndexer_create_http_errors(t *testing.T) {
 	AssertFalse(t, "indexer reports create on error?", response.Created)
 }
 
+// Test_ESIndexer_create runs a few basic tests with a mock http poster
+// to see if ElasticSearchIndexer acts fairly reasonably when creating a doc
 func Test_ESIndexer_create(t *testing.T) {
 	setup_es_unit_test(t)
 	httpMock.Result.StatusCode = 201
@@ -103,5 +109,6 @@ func Test_ESIndexer_create(t *testing.T) {
 
 	// we won't check that the requestDoc is definitely correct because
 	// there are many ways to send something to ES and this might make
-	// our tests too brittle. round-trip integration tests can check that
+	// our tests too brittle. Round-trip integration tests in
+	// elasticsearch_integration_test.go check that.
 }

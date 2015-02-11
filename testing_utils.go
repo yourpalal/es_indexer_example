@@ -21,6 +21,8 @@ type MockPoster struct {
 	RequestBodyType string
 }
 
+// Post returns the Result and Err members while reading and saving the request
+// data.
 func (mock *MockPoster) Post(url string, bodyType string, body io.Reader) (resp *http.Response, err error) {
 	mock.RequestURL = url
 	mock.RequestBodyType = bodyType
@@ -58,7 +60,7 @@ func AssertNoError(t *testing.T, msg string, err error) {
 }
 
 // Give a nice error message in the case of non-equality. We still make
-// the caller do the comparison for us because I don't want to do any reflection
+// the caller do the comparison for us because that's just a bit easier
 func AssertEqual(t *testing.T, equals bool, msg string, expected interface{}, actual interface{}) {
 	if !equals {
 		t.Fatalf("%s expected: %v got: %v", msg, expected, actual)

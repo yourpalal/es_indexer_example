@@ -57,7 +57,7 @@ func MakeElasticSearchIndexerFromEnv(client HTTPPoster) *ElasticSearchIndexer {
 
 // Index indexes the provided data in ElasticSearch
 // the data will be indexed in /<index>/<_type>/<id>
-//  data should be marshallable with json.
+// data should be marshallable with json.
 //
 // When create = false, a previous version of the document to be indexed
 // must already have been indexed. An update request will be issued to
@@ -86,7 +86,7 @@ func (indexer ElasticSearchIndexer) updateInIndex(index string, _type string, id
 	return response, err
 }
 
-// AddToIndex handles Index when create = true
+// addToIndex handles Index when create = true
 // makes sure that we get 201 status from Elasticsearch
 func (indexer ElasticSearchIndexer) addToIndex(index string, _type string, id string, data interface{}) (response IndexResponse, err error) {
 	response = IndexResponse{id, index, _type, false}
@@ -103,7 +103,8 @@ func (indexer ElasticSearchIndexer) addToIndex(index string, _type string, id st
 	return response, err
 }
 
-// generic http poster. Jsonifies data and posts it to docURL. If there is
+// postToURL handles generic posting to Elasticsearch.
+// It Jsonifies data and posts it to docURL. If there is
 // a non-200 http status as the result, it is reported as an error.
 func (indexer ElasticSearchIndexer) postToURL(docURL string, data interface{}) (response *http.Response, err error) {
 	jsonData, err := json.Marshal(data)
