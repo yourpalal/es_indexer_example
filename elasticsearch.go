@@ -3,9 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
+	"os"
 )
 
 // Poster abstracts some basic functionality of http.Client
@@ -25,6 +29,25 @@ type ElasticSearchIndexer struct {
 // an Elasticsearch (http://elasticsearch.org) server.
 var _ Indexer = ElasticSearchIndexer{}
 
+const (
+	ES_HOSTNAME_KEY = "ES_HOSTNAME"
+	ES_PORT_KEY     = "ES_PORT"
+)
+
+// create an instance of ElasticSearchIndexer that gets its hostname and
+// port from environment variables (ES_HOSTNAME and ES_PORT). If these
+// are not present in the environment, it will return nil
+func MakeElasticSearchIndexerFromEnv(client HTTPPoster) *ElasticSearchIndexer {
+	es_host_env := os.Getenv(ES_HOSTNAME_KEY)
+	es_port_env := os.Getenv(ES_PORT_KEY)
+
+	if es_port_env == "" || es_host_env == "" {
+		return nil
+	}
+
+	return &ElasticSearchIndexer{es_host_env, es_port_env, client}
+}
+
 // Index indexes the provided data in ElasticSearch
 // the data will be indexed in /<index>/<_type>/<id>
 //  data should be marshallable with json
@@ -37,8 +60,21 @@ func (indexer ElasticSearchIndexer) Index(index string, _type string, id string,
 		return response, err
 	}
 
-	url := indexer.docURL(index, _type, id)
-	indexer.client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	docURL := indexer.docURL(index, _type, id)
+	if create {
+		v := url.Values{}
+		v.Set("op_type", "create")
+		docURL += "?" + v.Encode()
+	}
+	httpR, err := indexer.client.Post(docURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return
+	}
+	if create && httpR.StatusCode != 201 {
+		errors.New("Index() Attempted create but did not get 201 status")
+	}
+
+	log.Print(httpR.Status)
 	// TODO when creating, do op_type=create, set timestamp?
 	return IndexResponse{id, index, _type, create}, nil
 }

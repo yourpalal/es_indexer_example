@@ -13,7 +13,7 @@ import (
 // MockPoster implements HTTPPoster by saving the request data and returning
 // a static response
 type MockPoster struct {
-	Result *http.Response
+	Result http.Response
 	Err    error
 
 	RequestURL      string
@@ -30,13 +30,21 @@ func (mock *MockPoster) Post(url string, bodyType string, body io.Reader) (resp 
 		log.Fatalf("failed to ReadAll in MockPoster: %s", readErr.Error())
 	}
 
-	return mock.Result, mock.Err
+	return &mock.Result, mock.Err
 }
 
 // AssertTrue fails a test if its ok argument is false, and logs
 // the provided message
 func AssertTrue(t *testing.T, msg string, ok bool) {
 	if !ok {
+		t.Fatalf(msg)
+	}
+}
+
+// AssertFalse fails a test if its ok argument is true , and logs
+// the provided message
+func AssertFalse(t *testing.T, msg string, ok bool) {
+	if ok {
 		t.Fatalf(msg)
 	}
 }

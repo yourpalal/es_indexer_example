@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/url"
 	"strings"
 	"testing"
@@ -11,22 +12,33 @@ import (
 // unjsonable is a map[int]int that cannot be jsonified
 var (
 	unjsonable map[int]int
-	indexer    ElasticSearchIndexer
+	indexer    *ElasticSearchIndexer
 	httpMock   MockPoster
+
+	example_doc = Document{
+		Title: "Trumpet.ca Programming Problem",
+		Body:  "You’ll implement the code for a search indexing system for models such as this...",
+		Timestamp: Timestamp{
+			CreatedAt:  time.Now(),
+			ModifiedAt: time.Now(),
+		},
+	}
 )
 
 // setup to run before each test
-func setup(t *testing.T) {
+func setup_es_unit_test(t *testing.T) {
 
 	unjsonable = make(map[int]int)
 	unjsonable[1] = 1
 
 	httpMock = MockPoster{}
-	indexer = ElasticSearchIndexer{"127.0.0.1", "9200", &httpMock}
+	httpMock.Result.StatusCode = 200
+	httpMock.Result.Status = "200 OK"
+	indexer = &ElasticSearchIndexer{"127.0.0.1", "9200", &httpMock}
 }
 
 func Test_ESIndexerReturnsJsonErrors(t *testing.T) {
-	setup(t)
+	setup_es_unit_test(t)
 
 	r, err := indexer.Index("testing", "impossible", "0", true, unjsonable)
 
@@ -39,7 +51,7 @@ func Test_ESIndexerReturnsJsonErrors(t *testing.T) {
 }
 
 func Test_ESIndexer_docURL(t *testing.T) {
-	setup(t)
+	setup_es_unit_test(t)
 
 	indexer.host = "127.0.0.1"
 	indexer.port = "9200"
@@ -52,17 +64,20 @@ func Test_ESIndexer_docURL(t *testing.T) {
 	}
 }
 
-func Test_ESIndexer_create(t *testing.T) {
-	doc := Document{
-		Title: "Trumpet.ca Programming Problem",
-		Body:  "You’ll implement the code for a search indexing system for models such as this...",
-		Timestamp: Timestamp{
-			CreatedAt:  time.Now(),
-			ModifiedAt: time.Now(),
-		},
-	}
+// Test_ESIndexer_create_http_errors tests whether the ElasticSearchIndexer
+// will properly propogate http errors
+func Test_ESIndexer_create_http_errors(t *testing.T) {
+	setup_es_unit_test(t)
+	httpMock.Err = errors.New("test error")
+	response, err := indexer.Index("trumpet", "doc", "first", true, example_doc)
 
-	response, err := indexer.Index("trumpet", "doc", "first", true, doc)
+	AssertEqual(t, err == httpMock.Err, "ElasticSearchIndexer did not propagate error correctly", err, httpMock.Err)
+	AssertFalse(t, "indexer reports create on error?", response.Created)
+}
+
+func Test_ESIndexer_create(t *testing.T) {
+	setup_es_unit_test(t)
+	response, err := indexer.Index("trumpet", "doc", "first", true, example_doc)
 
 	// check for errors
 	AssertNoError(t, "Failed to create doc", err)
