@@ -111,16 +111,20 @@ func Test_CreateUpdateDoc(t *testing.T) {
 	AssertEqual(t, *stored == example_doc, "indexed doc is incorrect",
 		example_doc, *stored)
 
-	// we should not be able to recreate a doc
-	result, err = indexer.Index(ES_TEST_INDEX, "docs", "1", true, example_doc)
-	AssertTrue(t, "Bad: succeeded in creating a doc twice", err != nil)
-
-	// but we should be able to update one!
 	modified_doc := Document{
 		Title:     example_doc.Title,
 		Body:      example_doc.Body + " hope you like it!",
 		Timestamp: example_doc.Timestamp,
 	}
+
+	// we should not be able to recreate a doc
+	result, err = indexer.Index(ES_TEST_INDEX, "docs", "1", true, example_doc)
+	AssertTrue(t, "Bad: succeeded in creating a doc twice", err != nil)
+	stored := es_get_doc(t, ES_TEST_INDEX, "docs", "1")
+	AssertEqual(t, *stored == example_doc, "failed create caused update!",
+		example_doc, *stored)
+
+	// but we should be able to update one!
 	result, err = indexer.Index(ES_TEST_INDEX, "docs", "1", false, modified_doc)
 	AssertNoError(t, "error updating doc", err)
 	expectedResponse = IndexResponse{"1", ES_TEST_INDEX, "docs", false}
@@ -130,4 +134,15 @@ func Test_CreateUpdateDoc(t *testing.T) {
 	stored = es_get_doc(t, ES_TEST_INDEX, "docs", "1")
 	AssertEqual(t, *stored == modified_doc, "updated doc is incorrect",
 		modified_doc, *stored)
+}
+
+// Test_UpdateNewDoc tests attempting to update a doc that has not yet
+// been indexed with the ElasticSearchIndexer, backed by a real
+// Elasticsearch server.
+func Test_UpdateNewDoc(t *testing.T) {
+	setup_es_integration_tests(t)
+	clear_es_data(t, ES_TEST_INDEX)
+
+	_, err := indexer.Index(ES_TEST_INDEX, "docs", "1", false, example_doc)
+	AssertTrue(t, "Bad: succeeded in updating an unindexed doc", err != nil)
 }
